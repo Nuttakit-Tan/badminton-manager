@@ -18,124 +18,416 @@ class _LoginScreenState extends State<LoginScreen> {
   final phoneController = TextEditingController();
 
   bool isLogin = true;
+  bool obscure = true;
 
-  String? validatePassword(String password) {
-    if (password.length < 8) {
-      return "รหัสต้องอย่างน้อย 8 ตัว";
-    }
-    if (!RegExp(r'[A-Z]').hasMatch(password)) {
-      return "ต้องมีตัวพิมพ์ใหญ่";
-    }
-    if (!RegExp(r'[a-z]').hasMatch(password)) {
-      return "ต้องมีตัวพิมพ์เล็ก";
-    }
-    if (!RegExp(r'[0-9]').hasMatch(password)) {
-      return "ต้องมีตัวเลข";
-    }
-    if (!RegExp(r'[!@#$%^&*(),.?":{}|<>]').hasMatch(password)) {
-      return "ต้องมีอักขระพิเศษ";
-    }
-    return null;
+  bool hasMinLength = false;
+  bool hasLower = false;
+  bool hasUpper = false;
+  bool hasSpecial = false;
+
+  bool nameValid = false;
+  bool phoneValid = false;
+  bool emailValid = false;
+  bool showContent = true;
+
+  double cardHeight = 500;
+
+  void showEmailExistsDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("สมัครไม่สำเร็จ"),
+        content: const Text("อีเมลนี้สมัครแล้ว"),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              setState(() {
+                isLogin = true;
+              });
+            },
+            child: const Text("กลับไปหน้า Login"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void clearForm() {
+    emailController.clear();
+    passwordController.clear();
+    confirmPasswordController.clear();
+    nameController.clear();
+    phoneController.clear();
+
+    hasMinLength = false;
+    hasLower = false;
+    hasUpper = false;
+    hasSpecial = false;
+
+    nameValid = false;
+    phoneValid = false;
+    emailValid = false;
+  }
+
+  @override
+  void dispose() {
+    emailController.dispose();
+    passwordController.dispose();
+    confirmPasswordController.dispose();
+    nameController.dispose();
+    phoneController.dispose();
+    super.dispose();
+  }
+
+  void validatePassword(String password) {
+    setState(() {
+      hasMinLength = password.length >= 8;
+      hasLower = RegExp(r'[a-z]').hasMatch(password);
+      hasUpper = RegExp(r'[A-Z]').hasMatch(password);
+      hasSpecial = RegExp(r'[!@#$%^&*(),.?":{}|<>]').hasMatch(password);
+    });
+  }
+
+  void validatePhone(String phone) {
+    setState(() {
+      phoneValid = phone.trim().length == 10;
+    });
+  }
+
+  void validateName(String name) {
+    setState(() {
+      nameValid = name.trim().isNotEmpty;
+    });
+  }
+
+  void validateEmail(String email) {
+    setState(() {
+      emailValid = email.trim().isNotEmpty;
+    });
+  }
+
+  bool get isPasswordValid =>
+      hasMinLength && hasLower && hasUpper && hasSpecial;
+
+  void showTopMessage(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: Colors.redAccent,
+      ),
+    );
+  }
+
+  Widget conditionRow(bool condition, String success, String error) {
+    return Row(
+      children: [
+        Icon(
+          condition ? Icons.check_circle : Icons.cancel,
+          color: condition ? Colors.green : Colors.red,
+          size: 18,
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            condition ? success : error,
+            style: TextStyle(
+              color: condition ? Colors.green : Colors.red,
+              fontSize: 13,
+            ),
+          ),
+        ),
+      ],
+    );
   }
 
   Future<void> signUp() async {
-    final passwordError = validatePassword(passwordController.text);
-    if (passwordError != null) {
-      showMessage(passwordError);
+    if (nameController.text.isEmpty ||
+        emailController.text.isEmpty ||
+        phoneController.text.isEmpty ||
+        passwordController.text.isEmpty ||
+        confirmPasswordController.text.isEmpty) {
+      showTopMessage("กรุณากรอกข้อมูลให้ครบ");
+      return;
+    }
+
+    if (!nameValid) {
+      showTopMessage("กรุณากำหนดชื่อ");
+      return;
+    }
+
+    if (!phoneValid) {
+      showTopMessage("กรุณาใส่เบอร์โทรศัพท์ให้ถูกต้อง");
+      return;
+    }
+
+    if (!emailValid) {
+      showTopMessage("กรุณาใส่ Email ให้ถูกต้อง");
+      return;
+    }
+
+    if (!isPasswordValid) {
+      showTopMessage("รหัสผ่านยังไม่ผ่านเงื่อนไข");
       return;
     }
 
     if (passwordController.text != confirmPasswordController.text) {
-      showMessage("รหัสผ่านไม่ตรงกัน");
+      showTopMessage("รหัสผ่านไม่ตรงกัน");
       return;
     }
 
-    final response = await supabase.auth.signUp(
-      email: emailController.text.trim(),
-      password: passwordController.text.trim(),
-    );
+    try {
+      final response = await supabase.auth.signUp(
+        email: emailController.text.trim(),
+        password: passwordController.text.trim(),
+      );
 
-    final user = response.user;
-    if (user != null) {
-      await supabase.from('profiles').insert({
-        'id': user.id,
-        'email': emailController.text.trim(),
-        'full_name': nameController.text.trim(),
-        'phone': phoneController.text.trim(),
-      });
+      final user = response.user;
 
-      showMessage("สมัครสมาชิกสำเร็จ");
+      if (user != null) {
+        await supabase.from('profiles').insert({
+          'id': user.id,
+          'email': emailController.text.trim(),
+          'full_name': nameController.text.trim(),
+          'phone': phoneController.text.trim(),
+        });
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("สมัครสมาชิกสำเร็จ"),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } on AuthException catch (e) {
+      // 🔥 ดักกรณี email ซ้ำ
+      if (e.message.contains("already registered") ||
+          e.message.contains("user_already_exists")) {
+        showEmailExistsDialog();
+      } else {
+        showTopMessage(e.message);
+      }
+    } catch (e) {
+      showTopMessage("เกิดข้อผิดพลาดบางอย่าง");
     }
   }
 
   Future<void> signIn() async {
+    if (emailController.text.isEmpty || passwordController.text.isEmpty) {
+      showTopMessage("กรุณากรอก Email และ Password");
+      return;
+    }
+
     await supabase.auth.signInWithPassword(
       email: emailController.text.trim(),
       password: passwordController.text.trim(),
     );
 
-    showMessage("เข้าสู่ระบบสำเร็จ");
-  }
-
-  void showMessage(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("เข้าสู่ระบบสำเร็จ"),
+        backgroundColor: Colors.green,
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(isLogin ? "Login" : "Register")),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: ListView(
-          children: [
-            if (!isLogin)
-              TextField(
-                controller: nameController,
-                decoration: const InputDecoration(labelText: "ชื่อ"),
-              ),
-            if (!isLogin)
-              TextField(
-                controller: phoneController,
-                decoration: const InputDecoration(labelText: "เบอร์โทร"),
-              ),
-            TextField(
-              controller: emailController,
-              decoration: const InputDecoration(labelText: "Email"),
-            ),
-            TextField(
-              controller: passwordController,
-              obscureText: true,
-              decoration: const InputDecoration(labelText: "Password"),
-            ),
-            if (!isLogin)
-              TextField(
-                controller: confirmPasswordController,
-                obscureText: true,
-                decoration: const InputDecoration(
-                  labelText: "Confirm Password",
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF1B5E20), Color(0xFF2E7D32), Color(0xFF66BB6A)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 400),
+              curve: Curves.easeInOutCubic,
+              width: double.infinity,
+              height: cardHeight,
+              child: Card(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                elevation: 10,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 1, 24, 24),
+                  child: AnimatedScale(
+                    duration: const Duration(milliseconds: 300),
+                    scale: showContent ? 1 : 0.97,
+                    child: AnimatedOpacity(
+                      duration: const Duration(milliseconds: 300),
+                      opacity: showContent ? 1 : 0,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          if (isLogin)
+                            Image.asset("assets/images/logo.png", height: 170),
+
+                          if (isLogin) const SizedBox(height: 1),
+
+                          Text(
+                            isLogin ? "เข้าสู่ระบบ" : "สมัครบัญชี",
+                            style: const TextStyle(
+                              fontSize: 26,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+
+                          if (!isLogin)
+                            TextField(
+                              controller: nameController,
+                              onChanged: validateName,
+                              decoration: const InputDecoration(
+                                labelText: "ชื่อ",
+                              ),
+                            ),
+                          if (!isLogin)
+                            conditionRow(nameValid, "", "กรุณากำหนดชื่อ"),
+
+                          if (!isLogin)
+                            TextField(
+                              controller: phoneController,
+                              keyboardType: TextInputType.number,
+                              onChanged: validatePhone,
+                              decoration: const InputDecoration(
+                                labelText: "เบอร์โทร",
+                              ),
+                            ),
+
+                          if (!isLogin)
+                            conditionRow(
+                              phoneValid,
+                              "",
+                              "กรุณาใส่เบอร์โทรศัพท์ให้ถูกต้อง",
+                            ),
+
+                          TextField(
+                            controller: emailController,
+                            onChanged: validateEmail,
+                            decoration: const InputDecoration(
+                              labelText: "Email",
+                            ),
+                          ),
+                          if (!isLogin)
+                            conditionRow(emailValid, "", "กรุณาใส่ Email"),
+
+                          TextField(
+                            controller: passwordController,
+                            obscureText: obscure,
+                            onChanged: validatePassword,
+                            decoration: InputDecoration(
+                              labelText: "รหัสผ่าน",
+                              suffixIcon: IconButton(
+                                icon: Icon(
+                                  obscure
+                                      ? Icons.visibility
+                                      : Icons.visibility_off,
+                                ),
+                                onPressed: () =>
+                                    setState(() => obscure = !obscure),
+                              ),
+                            ),
+                          ),
+
+                          if (!isLogin) ...[
+                            const SizedBox(height: 10),
+                            conditionRow(
+                              hasMinLength,
+                              "รหัสครบ 8 ตัวแล้ว",
+                              "ต้องมีรหัสไม่ต่ำกว่า 8 ตัว",
+                            ),
+                            conditionRow(
+                              hasLower,
+                              "มีอักษรภาษาอังกฤษพิมพ์เล็กแล้ว",
+                              "ต้องมีอักษรภาษาอังกฤษพิมพ์เล็กอย่างน้อย 1 ตัว",
+                            ),
+                            conditionRow(
+                              hasUpper,
+                              "มีอักษรภาษาอังกฤษพิมพ์ใหญ่แล้ว",
+                              "ต้องมีอักษรภาษาอังกฤษพิมพ์ใหญ่อย่างน้อย 1 ตัว",
+                            ),
+                            conditionRow(
+                              hasSpecial,
+                              "อักขระพิเศษแล้ว",
+                              "ต้องมีอักขระพิเศษอย่างน้อย 1 ตัว",
+                            ),
+                          ],
+
+                          if (!isLogin)
+                            TextField(
+                              controller: confirmPasswordController,
+                              obscureText: true,
+                              decoration: const InputDecoration(
+                                labelText: "ยืนยันรหัสผ่าน",
+                              ),
+                            ),
+
+                          const SizedBox(height: 20),
+
+                          ElevatedButton(
+                            onPressed: isLogin ? signIn : signUp,
+                            style: ElevatedButton.styleFrom(
+                              minimumSize: const Size(double.infinity, 50),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: Text(isLogin ? "Login" : "Register"),
+                          ),
+
+                          TextButton(
+                            onPressed: () async {
+                              // 1️⃣ fade ออก
+                              setState(() => showContent = false);
+
+                              await Future.delayed(
+                                const Duration(milliseconds: 200),
+                              );
+
+                              // 2️⃣ ขยายก่อน
+                              setState(() {
+                                cardHeight = isLogin ? 700 : 500;
+                              });
+
+                              await Future.delayed(
+                                const Duration(milliseconds: 400),
+                              );
+
+                              // 3️⃣ ค่อยเปลี่ยนหน้า
+                              setState(() {
+                                isLogin = !isLogin;
+                                clearForm();
+                              });
+
+                              await Future.delayed(
+                                const Duration(milliseconds: 50),
+                              );
+
+                              // 4️⃣ fade เข้า
+                              setState(() => showContent = true);
+                            },
+                            child: Text(
+                              isLogin
+                                  ? "ยังไม่มีบัญชี? สมัครสมาชิก"
+                                  : "มีบัญชีแล้ว? เข้าสู่ระบบ",
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
               ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: isLogin ? signIn : signUp,
-              child: Text(isLogin ? "Login" : "Register"),
             ),
-            TextButton(
-              onPressed: () {
-                setState(() {
-                  isLogin = !isLogin;
-                });
-              },
-              child: Text(
-                isLogin
-                    ? "ยังไม่มีบัญชี? สมัครสมาชิก"
-                    : "มีบัญชีแล้ว? เข้าสู่ระบบ",
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
