@@ -31,7 +31,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
             ),
             const SizedBox(height: 20),
             DropdownButtonFormField(
-              value: paymentType,
+              initialValue: paymentType,
               items: const [
                 DropdownMenuItem(value: "shuttle", child: Text("จ่ายตามลูก")),
                 DropdownMenuItem(value: "buffet", child: Text("บุฟเฟ่")),
