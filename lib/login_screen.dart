@@ -254,11 +254,11 @@ class _LoginScreenState extends State<LoginScreen> {
           // 🔹 โค้ด Container ของคุณทั้งหมด
           Container(
             decoration: const BoxDecoration(
-              gradient: LinearGradient(
+              gradient: const LinearGradient(
                 colors: [
-                  Color(0xFF1B5E20),
-                  Color(0xFF2E7D32),
-                  Color(0xFF66BB6A),
+                  Color(0xFFF6EDE8),
+                  Color(0xFFF4E6DF),
+                  Color(0xFFFAF2EC),
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
@@ -282,10 +282,16 @@ class _LoginScreenState extends State<LoginScreen> {
                             width: double.infinity,
                             height: cardHeight,
                             child: Card(
+                              color: Colors.white,
+                              elevation: 8,
+                              shadowColor: const Color(
+                                0xFFC56A4D,
+                              ).withOpacity(0.3),
+
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(24),
                               ),
-                              elevation: 10,
+
                               child: Padding(
                                 padding: const EdgeInsets.fromLTRB(
                                   24,
@@ -426,6 +432,11 @@ class _LoginScreenState extends State<LoginScreen> {
                                         ElevatedButton(
                                           onPressed: isLogin ? signIn : signUp,
                                           style: ElevatedButton.styleFrom(
+                                            backgroundColor: const Color(
+                                              0xFFF28C6F,
+                                            ), // 👈 ใส่ตรงนี้
+                                            foregroundColor:
+                                                Colors.white, // 👈 ใส่ตรงนี้
                                             minimumSize: const Size(
                                               double.infinity,
                                               50,

@@ -21,9 +21,38 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: LoginScreen(),
+
+      theme: ThemeData(
+        scaffoldBackgroundColor: const Color(0xFFF6EDE8),
+
+        primaryColor: const Color(0xFFF28C6F),
+
+        colorScheme: const ColorScheme.light(
+          primary: Color(0xFFF28C6F),
+          secondary: Color(0xFFC56A4D),
+          background: Color(0xFFF6EDE8),
+        ),
+
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFFF28C6F),
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        ),
+
+        inputDecorationTheme: const InputDecorationTheme(
+          focusedBorder: UnderlineInputBorder(
+            borderSide: BorderSide(color: Color(0xFFF28C6F)),
+          ),
+        ),
+      ),
+
+      home: const LoginScreen(),
     );
   }
 }

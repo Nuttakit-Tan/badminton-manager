@@ -15,9 +15,10 @@ class MainLayout extends StatefulWidget {
 class _MainLayoutState extends State<MainLayout> {
   int selectedIndex = 0;
 
-  final Color primaryGreen = const Color(0xFF14532D);
-  final Color activeGreen = const Color(0xFF22C55E);
-  final Color lightGreen = const Color(0xFFDCFCE7);
+  final Color primaryPeach = const Color(0xFFF28C6F);
+  final Color secondaryBrown = const Color(0xFFC56A4D);
+  final Color lightCream = const Color(0xFFF6EDE8);
+  final Color softPeach = const Color(0xFFFDE5DD);
 
   final List<Widget> pages = const [
     MembersPage(),
@@ -42,19 +43,57 @@ class _MainLayoutState extends State<MainLayout> {
         bool isTablet = constraints.maxWidth >= 800;
 
         return Scaffold(
-          appBar: AppBar(
-            title: Text(titles[selectedIndex]),
-            backgroundColor: primaryGreen,
-          ),
           drawer: isTablet ? null : buildDrawer(),
           body: Row(
             children: [
               if (isTablet) buildSidebar(),
 
               Expanded(
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 300),
-                  child: pages[selectedIndex],
+                child: Container(
+                  color: const Color(0xFFF6EDE8), // cream background
+                  child: Column(
+                    children: [
+                      // ===== Top Header =====
+                      Container(
+                        height: 70,
+                        padding: const EdgeInsets.symmetric(horizontal: 30),
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          titles[selectedIndex],
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFFC56A4D),
+                          ),
+                        ),
+                      ),
+
+                      // ===== Content Area =====
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(20),
+                              boxShadow: const [
+                                BoxShadow(
+                                  color: Colors.black12,
+                                  blurRadius: 20,
+                                  offset: Offset(0, 8),
+                                ),
+                              ],
+                            ),
+                            padding: const EdgeInsets.all(24),
+                            child: AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 300),
+                              child: pages[selectedIndex],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -71,7 +110,7 @@ class _MainLayoutState extends State<MainLayout> {
       width: 220,
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF14532D), Color(0xFF166534)],
+          colors: [Color(0xFFF29972), Color(0xFFC56A4D)],
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
         ),
@@ -85,16 +124,57 @@ class _MainLayoutState extends State<MainLayout> {
       ),
       child: Column(
         children: [
-          const SizedBox(height: 40),
-          const Text(
-            "🏸 Badminton",
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
+          const SizedBox(height: 30),
+
+          // ===== Logo Section ใหม่ =====
+          Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 160,
+                  height: 160,
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black26,
+                        blurRadius: 12,
+                        offset: Offset(0, 5),
+                      ),
+                    ],
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(13),
+                    child: Image.asset(
+                      "assets/images/logo.png",
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 6),
+
+                const Text(
+                  "Badminton Manager",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 30),
+
+          const SizedBox(height: 20),
+
+          // เส้นคั่น
+          const Divider(color: Colors.white24, thickness: 1),
+
+          const SizedBox(height: 12),
 
           buildRailItem(Icons.people, "รายชื่อ", 0),
           buildRailItem(Icons.sports_tennis, "จัดก๊วน", 1),
@@ -113,15 +193,15 @@ class _MainLayoutState extends State<MainLayout> {
       duration: const Duration(milliseconds: 250),
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: isSelected ? lightGreen : Colors.transparent,
+        color: isSelected ? softPeach : Colors.transparent,
         borderRadius: BorderRadius.circular(12),
       ),
       child: ListTile(
-        leading: Icon(icon, color: isSelected ? primaryGreen : Colors.white),
+        leading: Icon(icon, color: isSelected ? secondaryBrown : Colors.white),
         title: Text(
           title,
           style: TextStyle(
-            color: isSelected ? primaryGreen : Colors.white,
+            color: isSelected ? secondaryBrown : Colors.white,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
           ),
         ),
@@ -139,13 +219,13 @@ class _MainLayoutState extends State<MainLayout> {
   Drawer buildDrawer() {
     return Drawer(
       child: Container(
-        color: primaryGreen,
+        color: primaryPeach,
         child: ListView(
           children: [
             const DrawerHeader(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Color(0xFF16A34A), Color(0xFF22C55E)],
+                  colors: [Color(0xFFF28C6F), Color(0xFFC56A4D)],
                 ),
               ),
               child: Text(
@@ -174,15 +254,15 @@ class _MainLayoutState extends State<MainLayout> {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: isSelected ? lightGreen : Colors.transparent,
+        color: isSelected ? softPeach : Colors.transparent,
         borderRadius: BorderRadius.circular(12),
       ),
       child: ListTile(
-        leading: Icon(icon, color: isSelected ? primaryGreen : Colors.white),
+        leading: Icon(icon, color: isSelected ? secondaryBrown : Colors.white),
         title: Text(
           title,
           style: TextStyle(
-            color: isSelected ? primaryGreen : Colors.white,
+            color: isSelected ? secondaryBrown : Colors.white,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
           ),
         ),
