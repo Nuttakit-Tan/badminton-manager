@@ -152,196 +152,205 @@ class _MembersPageState extends State<MembersPage> {
           builder: (context, setModalState) {
             return Dialog(
               backgroundColor: Colors.transparent,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(25),
+              ),
               child: Container(
-                width: 420, // 👈 กำหนดขนาดตรงนี้
-                padding: const EdgeInsets.all(24),
+                width: 420,
+                height: MediaQuery.of(context).size.height * 0.75,
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
                 decoration: BoxDecoration(
                   color: Theme.of(context).cardColor,
                   borderRadius: BorderRadius.circular(25),
                 ),
-                child: SingleChildScrollView(
-                  child: Form(
-                    key: formKey,
-                    child: AbsorbPointer(
-                      absorbing: isSaving,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                child: Column(
+                  children: [
+                    /// 🔹 ส่วนฟอร์ม (เลื่อน)
+                    Expanded(
+                      child: SingleChildScrollView(
+                        child: Form(
+                          key: formKey,
+                          child: AbsorbPointer(
+                            absorbing: isSaving,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  "ข้อมูลสมาชิก",
+                                  style: TextStyle(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 20),
+
+                                TextFormField(
+                                  controller: nameCtrl,
+                                  decoration: modernInput("ชื่อจริง"),
+                                ),
+
+                                const SizedBox(height: 12),
+
+                                TextFormField(
+                                  controller: nickCtrl,
+                                  decoration: modernInput("ชื่อเล่น *"),
+                                  validator: (v) => v == null || v.isEmpty
+                                      ? "กรุณากรอกชื่อเล่น"
+                                      : null,
+                                ),
+
+                                const SizedBox(height: 12),
+
+                                InkWell(
+                                  onTap: () async {
+                                    final picked = await showDatePicker(
+                                      context: context,
+                                      initialDate:
+                                          selectedDate ?? DateTime.now(),
+                                      firstDate: DateTime(1950),
+                                      lastDate: DateTime.now(),
+                                    );
+
+                                    if (picked != null) {
+                                      setModalState(() {
+                                        selectedDate = picked;
+                                      });
+                                    }
+                                  },
+                                  child: InputDecorator(
+                                    decoration: modernInput("วันเกิด"),
+                                    child: Text(
+                                      selectedDate == null
+                                          ? "-"
+                                          : "${selectedDate!.day.toString().padLeft(2, '0')}/"
+                                                "${selectedDate!.month.toString().padLeft(2, '0')}/"
+                                                "${selectedDate!.year}",
+                                    ),
+                                  ),
+                                ),
+
+                                const SizedBox(height: 12),
+
+                                TextFormField(
+                                  controller: phoneCtrl,
+                                  decoration: modernInput("เบอร์โทร"),
+                                ),
+
+                                const SizedBox(height: 12),
+
+                                TextFormField(
+                                  controller: lineCtrl,
+                                  decoration: modernInput("Line ID"),
+                                ),
+
+                                const SizedBox(height: 12),
+
+                                DropdownButtonFormField<int>(
+                                  decoration: modernInput("ระดับมือ *"),
+                                  value: selectedSkillId,
+                                  items: skillLevels.map<DropdownMenuItem<int>>(
+                                    (level) {
+                                      return DropdownMenuItem<int>(
+                                        value: level['id'],
+                                        child: Text(level['code']),
+                                      );
+                                    },
+                                  ).toList(),
+                                  validator: (v) =>
+                                      v == null ? "กรุณาเลือกระดับมือ" : null,
+                                  onChanged: (v) {
+                                    selectedSkillId = v;
+                                  },
+                                ),
+
+                                const SizedBox(height: 20),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    /// 🔹 ปุ่มคงที่ด้านล่าง
+                    Container(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      decoration: const BoxDecoration(
+                        border: Border(top: BorderSide(color: Colors.black12)),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text(
-                            "ข้อมูลสมาชิก",
-                            style: TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                            ),
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text("ยกเลิก"),
                           ),
-                          const SizedBox(height: 20),
+                          ElevatedButton(
+                            onPressed: isSaving
+                                ? null
+                                : () async {
+                                    if (!formKey.currentState!.validate())
+                                      return;
 
-                          // ชื่อจริง
-                          TextFormField(
-                            controller: nameCtrl,
-                            decoration: modernInput("ชื่อจริง"),
-                          ),
+                                    setModalState(() => isSaving = true);
 
-                          const SizedBox(height: 12),
+                                    try {
+                                      final userId =
+                                          supabase.auth.currentUser!.id;
 
-                          // ชื่อเล่น
-                          TextFormField(
-                            controller: nickCtrl,
-                            decoration: modernInput("ชื่อเล่น *"),
-                            validator: (v) => v == null || v.isEmpty
-                                ? "กรุณากรอกชื่อเล่น"
-                                : null,
-                          ),
+                                      final data = {
+                                        'owner_id': userId,
+                                        'full_name': nameCtrl.text,
+                                        'nickname': nickCtrl.text,
+                                        'birth_date': selectedDate
+                                            ?.toIso8601String(),
+                                        'phone': phoneCtrl.text,
+                                        'line_id': lineCtrl.text,
+                                        'skill_level_id': selectedSkillId,
+                                      };
 
-                          const SizedBox(height: 12),
+                                      if (member == null) {
+                                        await supabase
+                                            .from('members')
+                                            .insert(data);
+                                      } else {
+                                        await supabase
+                                            .from('members')
+                                            .update(data)
+                                            .eq('id', member['id']);
+                                      }
 
-                          // วันเกิด
-                          InkWell(
-                            onTap: () async {
-                              final picked = await showDatePicker(
-                                context: context,
-                                initialDate: selectedDate ?? DateTime.now(),
-                                firstDate: DateTime(1950),
-                                lastDate: DateTime.now(),
-                                initialEntryMode: DatePickerEntryMode.input,
-                                helpText: 'เลือกวันเกิด',
-                                fieldHintText: 'วว/ดด/ปปปป',
-                                errorFormatText: 'ใส่เลขวันไม่ถูกต้อง',
-                                errorInvalidText: 'วันที่ไม่ถูกต้อง',
-                              );
+                                      await fetchMembers();
 
-                              if (picked != null) {
-                                setModalState(() {
-                                  selectedDate = picked;
-                                });
-                              }
-                            },
-                            child: InputDecorator(
-                              decoration: modernInput("วันเกิด"),
-                              child: Text(
-                                selectedDate == null
-                                    ? "-"
-                                    : "${selectedDate!.day.toString().padLeft(2, '0')}/"
-                                          "${selectedDate!.month.toString().padLeft(2, '0')}/"
-                                          "${selectedDate!.year}",
-                              ),
-                            ),
-                          ),
+                                      if (context.mounted) {
+                                        Navigator.pop(context);
+                                      }
+                                    } catch (e) {
+                                      setModalState(() => isSaving = false);
 
-                          const SizedBox(height: 12),
-
-                          TextFormField(
-                            controller: phoneCtrl,
-                            decoration: modernInput("เบอร์โทร"),
-                          ),
-
-                          const SizedBox(height: 12),
-
-                          TextFormField(
-                            controller: lineCtrl,
-                            decoration: modernInput("Line ID"),
-                          ),
-
-                          const SizedBox(height: 12),
-
-                          DropdownButtonFormField<int>(
-                            decoration: modernInput("ระดับมือ *"),
-                            value: selectedSkillId,
-                            items: skillLevels.map<DropdownMenuItem<int>>((
-                              level,
-                            ) {
-                              return DropdownMenuItem<int>(
-                                value: level['id'],
-                                child: Text(level['code']),
-                              );
-                            }).toList(),
-                            validator: (v) =>
-                                v == null ? "กรุณาเลือกระดับมือ" : null,
-                            onChanged: (v) {
-                              selectedSkillId = v;
-                            },
-                          ),
-
-                          const SizedBox(height: 25),
-
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(context),
-                                child: const Text("ยกเลิก"),
-                              ),
-                              ElevatedButton(
-                                onPressed: isSaving
-                                    ? null
-                                    : () async {
-                                        if (!formKey.currentState!.validate())
-                                          return;
-
-                                        setModalState(() => isSaving = true);
-
-                                        try {
-                                          final userId =
-                                              supabase.auth.currentUser!.id;
-
-                                          final data = {
-                                            'owner_id': userId,
-                                            'full_name': nameCtrl.text,
-                                            'nickname': nickCtrl.text,
-                                            'birth_date': selectedDate
-                                                ?.toIso8601String(),
-                                            'phone': phoneCtrl.text,
-                                            'line_id': lineCtrl.text,
-                                            'skill_level_id': selectedSkillId,
-                                          };
-
-                                          if (member == null) {
-                                            await supabase
-                                                .from('members')
-                                                .insert(data);
-                                          } else {
-                                            await supabase
-                                                .from('members')
-                                                .update(data)
-                                                .eq('id', member['id']);
-                                          }
-
-                                          await fetchMembers();
-
-                                          if (context.mounted) {
-                                            Navigator.pop(context);
-                                          }
-                                        } catch (e) {
-                                          setModalState(() => isSaving = false);
-
-                                          ScaffoldMessenger.of(
-                                            context,
-                                          ).showSnackBar(
-                                            SnackBar(
-                                              content: Text(
-                                                "เกิดข้อผิดพลาด: $e",
-                                              ),
-                                            ),
-                                          );
-                                        }
-                                      },
-                                child: isSaving
-                                    ? const SizedBox(
-                                        width: 18,
-                                        height: 18,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          color: Colors.white,
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: Text("เกิดข้อผิดพลาด: $e"),
                                         ),
-                                      )
-                                    : Text(member == null ? "เพิ่ม" : "บันทึก"),
-                              ),
-                            ],
+                                      );
+                                    }
+                                  },
+                            child: isSaving
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : Text(member == null ? "เพิ่ม" : "บันทึก"),
                           ),
                         ],
                       ),
                     ),
-                  ),
+                  ],
                 ),
               ),
             );
@@ -447,181 +456,202 @@ class _MembersPageState extends State<MembersPage> {
   // =========================
   @override
   Widget build(BuildContext context) {
+    final isWide = MediaQuery.of(context).size.width > 600;
+    final isLandscape =
+        MediaQuery.of(context).orientation == Orientation.landscape;
+
     return Scaffold(
-      appBar: AppBar(title: const Text("รายชื่อสมาชิกของฉัน")),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : members.isEmpty
-          ? const Center(child: Text("ยังไม่มีสมาชิก"))
-          : ListView.builder(
-              controller: _scrollController,
-              itemCount: members.length + (isFetchingMore ? 1 : 0),
-              itemBuilder: (_, index) {
-                if (index == members.length) {
-                  return const Padding(
-                    padding: EdgeInsets.all(16),
-                    child: Center(child: CircularProgressIndicator()),
-                  );
-                }
+      backgroundColor: const Color(0xFFF5F1EE), // สีเดียวกับพื้นหลัง
+      appBar: AppBar(
+        title: const Text("รายชื่อสมาชิกของฉัน"),
+        backgroundColor: const Color(0xFFF5F1EE),
+        elevation: 0,
+      ),
+      body: SafeArea(
+        child: isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : members.isEmpty
+            ? const Center(child: Text("ยังไม่มีสมาชิก"))
+            : ListView.builder(
+                controller: _scrollController,
+                padding: const EdgeInsets.only(bottom: 80),
+                itemCount: members.length + (isFetchingMore ? 1 : 0),
+                itemBuilder: (_, index) {
+                  if (index == members.length) {
+                    return const Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Center(child: CircularProgressIndicator()),
+                    );
+                  }
 
-                final m = members[index];
+                  final m = members[index];
 
-                // 👇 ต้องประกาศก่อน
-                final birthDate = m['birth_date'] != null
-                    ? DateTime.parse(m['birth_date'])
-                    : null;
+                  // 👇 ต้องประกาศก่อน
+                  final birthDate = m['birth_date'] != null
+                      ? DateTime.parse(m['birth_date'])
+                      : null;
 
-                final birthText = birthDate != null
-                    ? "${birthDate.day.toString().padLeft(2, '0')}/"
-                          "${birthDate.month.toString().padLeft(2, '0')}/"
-                          "${birthDate.year}"
-                    : '-';
+                  final birthText = birthDate != null
+                      ? "${birthDate.day.toString().padLeft(2, '0')}/"
+                            "${birthDate.month.toString().padLeft(2, '0')}/"
+                            "${birthDate.year}"
+                      : '-';
 
-                final age = birthDate != null ? calculateAge(birthDate) : null;
+                  final age = birthDate != null
+                      ? calculateAge(birthDate)
+                      : null;
 
-                final skill = m['skill_levels'];
+                  final skill = m['skill_levels'];
 
-                return Card(
-                  margin: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 10,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                  elevation: 3,
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // 🔹 Header Row
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              m['nickname'] ?? '-',
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            Row(
-                              children: [
-                                IconButton(
-                                  icon: const Icon(Icons.edit),
-                                  onPressed: () {
-                                    showMemberForm(member: m);
-                                  },
-                                ),
-                                IconButton(
-                                  icon: const Icon(
-                                    Icons.delete,
-                                    color: Colors.red,
+                  return Card(
+                    margin: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 8,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    elevation: 3,
+                    child: Padding(
+                      padding: EdgeInsets.all(isLandscape ? 20 : 16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // 🔹 Header Row
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  m['nickname'] ?? '-',
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
                                   ),
-                                  onPressed: () async {
-                                    final confirm = await showDialog<bool>(
-                                      context: context,
-                                      builder: (context) {
-                                        return AlertDialog(
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(
-                                              16,
-                                            ),
-                                          ),
-                                          title: const Text("ยืนยันการลบ"),
-                                          content: Text(
-                                            "คุณต้องการลบสมาชิก \"${m['nickname']}\" ใช่หรือไม่?",
-                                          ),
-                                          actions: [
-                                            TextButton(
-                                              onPressed: () {
-                                                Navigator.pop(context, false);
-                                              },
-                                              child: const Text("ยกเลิก"),
-                                            ),
-                                            ElevatedButton(
-                                              style: ElevatedButton.styleFrom(
-                                                backgroundColor: Colors.red,
-                                              ),
-                                              onPressed: () {
-                                                Navigator.pop(context, true);
-                                              },
-                                              child: const Text("ลบ"),
-                                            ),
-                                          ],
-                                        );
-                                      },
-                                    );
-
-                                    // ถ้าผู้ใช้กดยืนยัน
-                                    if (confirm == true) {
-                                      await supabase
-                                          .from('members')
-                                          .delete()
-                                          .eq('id', m['id']);
-
-                                      await fetchMembers();
-
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
-                                            "ลบสมาชิกเรียบร้อยแล้ว",
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.edit),
+                                onPressed: () {
+                                  showMemberForm(member: m);
+                                },
+                              ),
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.delete,
+                                  color: Colors.red,
+                                ),
+                                onPressed: () async {
+                                  final confirm = await showDialog<bool>(
+                                    context: context,
+                                    builder: (context) {
+                                      return AlertDialog(
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            16,
                                           ),
                                         ),
+                                        title: const Text("ยืนยันการลบ"),
+                                        content: Text(
+                                          "คุณต้องการลบสมาชิก \"${m['nickname']}\" ใช่หรือไม่?",
+                                        ),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () {
+                                              Navigator.pop(context, false);
+                                            },
+                                            child: const Text("ยกเลิก"),
+                                          ),
+                                          ElevatedButton(
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: Colors.red,
+                                            ),
+                                            onPressed: () {
+                                              Navigator.pop(context, true);
+                                            },
+                                            child: const Text("ลบ"),
+                                          ),
+                                        ],
                                       );
-                                    }
-                                  },
+                                    },
+                                  );
+
+                                  if (confirm == true) {
+                                    await supabase
+                                        .from('members')
+                                        .delete()
+                                        .eq('id', m['id']);
+
+                                    await fetchMembers();
+
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text("ลบสมาชิกเรียบร้อยแล้ว"),
+                                      ),
+                                    );
+                                  }
+                                },
+                              ),
+                            ],
+                          ),
+
+                          const Divider(),
+
+                          // 🔹 2 Column Layout
+                          isWide
+                              ? Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          _infoRow("ชื่อจริง", m['full_name']),
+                                          _infoRow("วันเกิด", birthText),
+                                          _infoRow(
+                                            "อายุ",
+                                            age != null ? "$age ปี" : "-",
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 30),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          _infoRow("โทรศัพท์", m['phone']),
+                                          _infoRow("Line ID", m['line_id']),
+                                          _infoRow("ระดับมือ", skill?['code']),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              : Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _infoRow("ชื่อจริง", m['full_name']),
+                                    _infoRow("วันเกิด", birthText),
+                                    _infoRow(
+                                      "อายุ",
+                                      age != null ? "$age ปี" : "-",
+                                    ),
+                                    _infoRow("โทรศัพท์", m['phone']),
+                                    _infoRow("Line ID", m['line_id']),
+                                    _infoRow("ระดับมือ", skill?['code']),
+                                  ],
                                 ),
-                              ],
-                            ),
-                          ],
-                        ),
-
-                        const Divider(),
-
-                        // 🔹 2 Column Layout
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Column ซ้าย
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  _infoRow("ชื่อจริง", m['full_name']),
-                                  _infoRow("วันเกิด", birthText),
-                                  _infoRow(
-                                    "อายุ",
-                                    age != null ? "$age ปี" : "-",
-                                  ),
-                                ],
-                              ),
-                            ),
-
-                            const SizedBox(width: 30),
-
-                            // Column ขวา
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  _infoRow("โทรศัพท์", m['phone']),
-                                  _infoRow("Line ID", m['line_id']),
-                                  _infoRow("ระดับมือ", skill?['code']),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                );
-              },
-            ),
+                  );
+                },
+              ),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           showMemberForm();
@@ -645,17 +675,26 @@ class _MembersPageState extends State<MembersPage> {
 
   Widget _infoRow(String label, dynamic value) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: 6),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 90,
+            width: 85,
             child: Text(
               "$label :",
-              style: const TextStyle(fontWeight: FontWeight.w600),
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                color: Colors.grey,
+              ),
             ),
           ),
-          Expanded(child: Text(value?.toString() ?? "-")),
+          Expanded(
+            child: Text(
+              value?.toString() ?? "-",
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
         ],
       ),
     );

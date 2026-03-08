@@ -1,101 +1,81 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'home_screen.dart';
-import '../login_screen.dart';
+import '../main_layout.dart';
 
 class LoadingScreen extends StatefulWidget {
-  final String email;
-  final String password;
-
-  const LoadingScreen({super.key, required this.email, required this.password});
+  const LoadingScreen({super.key});
 
   @override
   State<LoadingScreen> createState() => _LoadingScreenState();
 }
 
-class _LoadingScreenState extends State<LoadingScreen> {
-  final supabase = Supabase.instance.client;
-
+class _LoadingScreenState extends State<LoadingScreen>
+    with SingleTickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    _login();
+    _goToHome();
   }
 
-  Future<void> _login() async {
-    try {
-      final response = await supabase.auth.signInWithPassword(
-        email: widget.email,
-        password: widget.password,
-      );
+  Future<void> _goToHome() async {
+    await Future.delayed(const Duration(milliseconds: 1200));
 
-      if (response.user != null) {
-        if (!mounted) return;
+    if (!mounted) return; // 🔥 สำคัญมาก
 
-        Navigator.pushReplacement(
-          context,
-          PageRouteBuilder(
-            transitionDuration: const Duration(milliseconds: 500),
-            pageBuilder: (_, animation, __) =>
-                FadeTransition(opacity: animation, child: const HomeScreen()),
-          ),
-        );
-      }
-    } on AuthException catch (e) {
-      if (!mounted) return;
-
-      Navigator.pushReplacement(
-        context,
-        PageRouteBuilder(
-          transitionDuration: const Duration(milliseconds: 500),
-          pageBuilder: (_, animation, __) =>
-              FadeTransition(opacity: animation, child: const LoginScreen()),
-        ),
-      );
-
-      Future.microtask(() {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message), backgroundColor: Colors.red),
-        );
-      });
-    } catch (e) {
-      if (!mounted) return;
-
-      Navigator.pushReplacement(
-        context,
-        PageRouteBuilder(
-          transitionDuration: const Duration(milliseconds: 500),
-          pageBuilder: (_, animation, __) =>
-              FadeTransition(opacity: animation, child: const LoginScreen()),
-        ),
-      );
-    }
+    Navigator.pushReplacement(
+      context,
+      PageRouteBuilder(
+        transitionDuration: const Duration(milliseconds: 600),
+        pageBuilder: (_, animation, __) =>
+            FadeTransition(opacity: animation, child: const MainLayout()),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF1B5E20),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Image.asset("assets/images/logo.png", height: 150),
-            const SizedBox(height: 40),
-            const Text(
-              "กำลังเข้าสู่ระบบ...",
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFFF6EDE8), Color(0xFFFAF2EC)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              TweenAnimationBuilder<double>(
+                duration: const Duration(milliseconds: 800),
+                tween: Tween(begin: 0.8, end: 1),
+                curve: Curves.easeOutBack,
+                builder: (context, value, child) {
+                  return Transform.scale(scale: value, child: child);
+                },
+                child: Image.asset("assets/images/logo.png", height: 140),
               ),
-            ),
-            const SizedBox(height: 25),
-            const CircularProgressIndicator(
-              strokeWidth: 4,
-              color: Colors.white,
-            ),
-          ],
+              const SizedBox(height: 30),
+              const Text(
+                "กำลังเตรียมระบบ...",
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF6B3E2E),
+                ),
+              ),
+              const SizedBox(height: 20),
+              const SizedBox(
+                width: 28,
+                height: 28,
+                child: CircularProgressIndicator(
+                  strokeWidth: 3,
+                  color: Color(0xFFF28C6F),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

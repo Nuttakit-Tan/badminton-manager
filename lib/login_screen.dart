@@ -236,13 +236,14 @@ class _LoginScreenState extends State<LoginScreen> {
         password: passwordController.text.trim(),
       );
 
-      // ✅ ใส่ตรงนี้
+      if (!mounted) return; // 🔥 ใส่ตรงนี้
+
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const MainLayout()),
+        MaterialPageRoute(builder: (_) => const LoadingScreen()),
       );
     } on AuthException catch (e) {
-      showTopMessage(e.message);
+      showTopMessage("ไม่พบบัญชี กรุณาตรวจสอบอีเมลและรหัสอีกครั้ง");
     }
   }
 
@@ -274,221 +275,253 @@ class _LoginScreenState extends State<LoginScreen> {
                         minHeight: constraints.maxHeight,
                       ),
                       child: Center(
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 420),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 400),
-                            curve: Curves.easeInOutCubic,
-                            width: double.infinity,
-                            height: cardHeight,
-                            child: Card(
-                              color: Colors.white,
-                              elevation: 8,
-                              shadowColor: const Color(
-                                0xFFC56A4D,
-                              ).withOpacity(0.3),
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: MediaQuery.of(context).size.width < 600
+                                ? 20
+                                : 0,
+                            vertical: MediaQuery.of(context).size.width < 600
+                                ? 24
+                                : 0,
+                          ),
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 420),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 400),
+                              curve: Curves.easeInOutCubic,
+                              width: double.infinity,
+                              height: cardHeight,
+                              child: Card(
+                                color: Colors.white,
+                                elevation: 8,
+                                shadowColor: const Color(
+                                  0xFFC56A4D,
+                                ).withOpacity(0.3),
 
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(24),
-                              ),
-
-                              child: Padding(
-                                padding: const EdgeInsets.fromLTRB(
-                                  24,
-                                  1,
-                                  24,
-                                  24,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(24),
                                 ),
-                                child: AnimatedScale(
-                                  duration: const Duration(milliseconds: 300),
-                                  scale: showContent ? 1 : 0.97,
-                                  child: AnimatedOpacity(
+
+                                child: Padding(
+                                  padding: const EdgeInsets.fromLTRB(
+                                    24,
+                                    1,
+                                    24,
+                                    24,
+                                  ),
+                                  child: AnimatedScale(
                                     duration: const Duration(milliseconds: 300),
-                                    opacity: showContent ? 1 : 0,
-                                    child: Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        if (isLogin)
-                                          Image.asset(
-                                            "assets/images/logo.png",
-                                            height: 170,
-                                          ),
+                                    scale: showContent ? 1 : 0.97,
+                                    child: AnimatedOpacity(
+                                      duration: const Duration(
+                                        milliseconds: 300,
+                                      ),
+                                      opacity: showContent ? 1 : 0,
+                                      child: Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          if (isLogin)
+                                            Image.asset(
+                                              "assets/images/logo.png",
+                                              height: 170,
+                                              errorBuilder:
+                                                  (context, error, stackTrace) {
+                                                    return const SizedBox(); // ถ้าโหลดไม่ได้จะไม่พัง
+                                                  },
+                                            ),
 
-                                        if (isLogin) const SizedBox(height: 1),
+                                          if (isLogin)
+                                            const SizedBox(height: 1),
 
-                                        Text(
-                                          isLogin
-                                              ? "เข้าสู่ระบบ"
-                                              : "สมัครบัญชี",
-                                          style: const TextStyle(
-                                            fontSize: 26,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 20),
-
-                                        if (!isLogin)
-                                          TextField(
-                                            controller: nameController,
-                                            onChanged: validateName,
-                                            decoration: const InputDecoration(
-                                              labelText: "ชื่อ",
+                                          Text(
+                                            isLogin
+                                                ? "เข้าสู่ระบบ"
+                                                : "สมัครบัญชี",
+                                            style: const TextStyle(
+                                              fontSize: 26,
+                                              fontWeight: FontWeight.bold,
                                             ),
                                           ),
-                                        if (!isLogin)
-                                          conditionRow(
-                                            nameValid,
-                                            "",
-                                            "กรุณากำหนดชื่อ",
-                                          ),
+                                          const SizedBox(height: 20),
 
-                                        if (!isLogin)
-                                          TextField(
-                                            controller: phoneController,
-                                            keyboardType: TextInputType.number,
-                                            onChanged: validatePhone,
-                                            decoration: const InputDecoration(
-                                              labelText: "เบอร์โทร",
-                                            ),
-                                          ),
-
-                                        if (!isLogin)
-                                          conditionRow(
-                                            phoneValid,
-                                            "",
-                                            "กรุณาใส่เบอร์โทรศัพท์ให้ถูกต้อง",
-                                          ),
-
-                                        TextField(
-                                          controller: emailController,
-                                          onChanged: validateEmail,
-                                          decoration: const InputDecoration(
-                                            labelText: "Email",
-                                          ),
-                                        ),
-                                        if (!isLogin)
-                                          conditionRow(
-                                            emailValid,
-                                            "",
-                                            "กรุณาใส่ Email",
-                                          ),
-
-                                        TextField(
-                                          controller: passwordController,
-                                          obscureText: obscure,
-                                          onChanged: validatePassword,
-                                          decoration: InputDecoration(
-                                            labelText: "รหัสผ่าน",
-                                            suffixIcon: IconButton(
-                                              icon: Icon(
-                                                obscure
-                                                    ? Icons.visibility
-                                                    : Icons.visibility_off,
-                                              ),
-                                              onPressed: () => setState(
-                                                () => obscure = !obscure,
+                                          if (!isLogin)
+                                            TextField(
+                                              controller: nameController,
+                                              onChanged: validateName,
+                                              decoration: const InputDecoration(
+                                                labelText: "ชื่อ",
                                               ),
                                             ),
-                                          ),
-                                        ),
+                                          if (!isLogin)
+                                            conditionRow(
+                                              nameValid,
+                                              "",
+                                              "กรุณากำหนดชื่อ",
+                                            ),
 
-                                        if (!isLogin) ...[
-                                          const SizedBox(height: 10),
-                                          conditionRow(
-                                            hasMinLength,
-                                            "รหัสครบ 8 ตัวแล้ว",
-                                            "ต้องมีรหัสไม่ต่ำกว่า 8 ตัว",
+                                          if (!isLogin)
+                                            TextField(
+                                              controller: phoneController,
+                                              keyboardType:
+                                                  TextInputType.number,
+                                              onChanged: validatePhone,
+                                              decoration: const InputDecoration(
+                                                labelText: "เบอร์โทร",
+                                              ),
+                                            ),
+
+                                          if (!isLogin)
+                                            conditionRow(
+                                              phoneValid,
+                                              "",
+                                              "กรุณาใส่เบอร์โทรศัพท์ให้ถูกต้อง",
+                                            ),
+
+                                          TextField(
+                                            controller: emailController,
+                                            onChanged: validateEmail,
+                                            decoration: const InputDecoration(
+                                              labelText: "Email",
+                                            ),
                                           ),
-                                          conditionRow(
-                                            hasLower,
-                                            "มีอักษรภาษาอังกฤษพิมพ์เล็กแล้ว",
-                                            "ต้องมีอักษรภาษาอังกฤษพิมพ์เล็กอย่างน้อย 1 ตัว",
+                                          if (!isLogin)
+                                            conditionRow(
+                                              emailValid,
+                                              "",
+                                              "กรุณาใส่ Email",
+                                            ),
+
+                                          TextField(
+                                            controller: passwordController,
+                                            obscureText: obscure,
+                                            onChanged: validatePassword,
+                                            decoration: InputDecoration(
+                                              labelText: "รหัสผ่าน",
+                                              suffixIcon: IconButton(
+                                                icon: Icon(
+                                                  obscure
+                                                      ? Icons.visibility
+                                                      : Icons.visibility_off,
+                                                ),
+                                                onPressed: () => setState(
+                                                  () => obscure = !obscure,
+                                                ),
+                                              ),
+                                            ),
                                           ),
-                                          conditionRow(
-                                            hasUpper,
-                                            "มีอักษรภาษาอังกฤษพิมพ์ใหญ่แล้ว",
-                                            "ต้องมีอักษรภาษาอังกฤษพิมพ์ใหญ่อย่างน้อย 1 ตัว",
+
+                                          if (!isLogin) ...[
+                                            const SizedBox(height: 10),
+                                            conditionRow(
+                                              hasMinLength,
+                                              "รหัสครบ 8 ตัวแล้ว",
+                                              "ต้องมีรหัสไม่ต่ำกว่า 8 ตัว",
+                                            ),
+                                            conditionRow(
+                                              hasLower,
+                                              "มีอักษรภาษาอังกฤษพิมพ์เล็กแล้ว",
+                                              "ต้องมีอักษรภาษาอังกฤษพิมพ์เล็กอย่างน้อย 1 ตัว",
+                                            ),
+                                            conditionRow(
+                                              hasUpper,
+                                              "มีอักษรภาษาอังกฤษพิมพ์ใหญ่แล้ว",
+                                              "ต้องมีอักษรภาษาอังกฤษพิมพ์ใหญ่อย่างน้อย 1 ตัว",
+                                            ),
+                                            conditionRow(
+                                              hasSpecial,
+                                              "อักขระพิเศษแล้ว",
+                                              "ต้องมีอักขระพิเศษอย่างน้อย 1 ตัว",
+                                            ),
+                                          ],
+
+                                          if (!isLogin)
+                                            TextField(
+                                              controller:
+                                                  confirmPasswordController,
+                                              obscureText: true,
+                                              decoration: const InputDecoration(
+                                                labelText: "ยืนยันรหัสผ่าน",
+                                              ),
+                                            ),
+
+                                          const SizedBox(height: 20),
+
+                                          ElevatedButton(
+                                            onPressed: isLogin
+                                                ? signIn
+                                                : signUp,
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: const Color(
+                                                0xFFF28C6F,
+                                              ), // 👈 ใส่ตรงนี้
+                                              foregroundColor:
+                                                  Colors.white, // 👈 ใส่ตรงนี้
+                                              minimumSize: const Size(
+                                                double.infinity,
+                                                50,
+                                              ),
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                              ),
+                                            ),
+                                            child: Text(
+                                              isLogin ? "Login" : "Register",
+                                            ),
                                           ),
-                                          conditionRow(
-                                            hasSpecial,
-                                            "อักขระพิเศษแล้ว",
-                                            "ต้องมีอักขระพิเศษอย่างน้อย 1 ตัว",
+
+                                          TextButton(
+                                            onPressed: () async {
+                                              // 1️⃣ fade ออก
+                                              setState(
+                                                () => showContent = false,
+                                              );
+
+                                              await Future.delayed(
+                                                const Duration(
+                                                  milliseconds: 200,
+                                                ),
+                                              );
+
+                                              // 2️⃣ ขยายก่อน
+                                              setState(() {
+                                                cardHeight = isLogin
+                                                    ? 700
+                                                    : 500;
+                                              });
+
+                                              await Future.delayed(
+                                                const Duration(
+                                                  milliseconds: 400,
+                                                ),
+                                              );
+
+                                              // 3️⃣ ค่อยเปลี่ยนหน้า
+                                              setState(() {
+                                                isLogin = !isLogin;
+                                                clearForm();
+                                              });
+
+                                              await Future.delayed(
+                                                const Duration(
+                                                  milliseconds: 50,
+                                                ),
+                                              );
+
+                                              // 4️⃣ fade เข้า
+                                              setState(
+                                                () => showContent = true,
+                                              );
+                                            },
+                                            child: Text(
+                                              isLogin
+                                                  ? "ยังไม่มีบัญชี? สมัครสมาชิก"
+                                                  : "มีบัญชีแล้ว? เข้าสู่ระบบ",
+                                            ),
                                           ),
                                         ],
-
-                                        if (!isLogin)
-                                          TextField(
-                                            controller:
-                                                confirmPasswordController,
-                                            obscureText: true,
-                                            decoration: const InputDecoration(
-                                              labelText: "ยืนยันรหัสผ่าน",
-                                            ),
-                                          ),
-
-                                        const SizedBox(height: 20),
-
-                                        ElevatedButton(
-                                          onPressed: isLogin ? signIn : signUp,
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: const Color(
-                                              0xFFF28C6F,
-                                            ), // 👈 ใส่ตรงนี้
-                                            foregroundColor:
-                                                Colors.white, // 👈 ใส่ตรงนี้
-                                            minimumSize: const Size(
-                                              double.infinity,
-                                              50,
-                                            ),
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(12),
-                                            ),
-                                          ),
-                                          child: Text(
-                                            isLogin ? "Login" : "Register",
-                                          ),
-                                        ),
-
-                                        TextButton(
-                                          onPressed: () async {
-                                            // 1️⃣ fade ออก
-                                            setState(() => showContent = false);
-
-                                            await Future.delayed(
-                                              const Duration(milliseconds: 200),
-                                            );
-
-                                            // 2️⃣ ขยายก่อน
-                                            setState(() {
-                                              cardHeight = isLogin ? 700 : 500;
-                                            });
-
-                                            await Future.delayed(
-                                              const Duration(milliseconds: 400),
-                                            );
-
-                                            // 3️⃣ ค่อยเปลี่ยนหน้า
-                                            setState(() {
-                                              isLogin = !isLogin;
-                                              clearForm();
-                                            });
-
-                                            await Future.delayed(
-                                              const Duration(milliseconds: 50),
-                                            );
-
-                                            // 4️⃣ fade เข้า
-                                            setState(() => showContent = true);
-                                          },
-                                          child: Text(
-                                            isLogin
-                                                ? "ยังไม่มีบัญชี? สมัครสมาชิก"
-                                                : "มีบัญชีแล้ว? เข้าสู่ระบบ",
-                                          ),
-                                        ),
-                                      ],
+                                      ),
                                     ),
                                   ),
                                 ),

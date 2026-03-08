@@ -4,6 +4,8 @@ import 'screens/match_page.dart';
 import 'screens/shuttle_page.dart';
 import 'screens/history_page.dart';
 import 'screens/payment_history_page.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'login_screen.dart';
 
 class MainLayout extends StatefulWidget {
   const MainLayout({super.key});
@@ -14,6 +16,7 @@ class MainLayout extends StatefulWidget {
 
 class _MainLayoutState extends State<MainLayout> {
   int selectedIndex = 0;
+  bool isSidebarExpanded = false;
 
   final Color primaryPeach = const Color(0xFFF28C6F);
   final Color secondaryBrown = const Color(0xFFC56A4D);
@@ -46,53 +49,80 @@ class _MainLayoutState extends State<MainLayout> {
           drawer: isTablet ? null : buildDrawer(),
           body: Row(
             children: [
-              if (isTablet) buildSidebar(),
+              if (isTablet)
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 250),
+                  curve: Curves.easeInOut,
+                  width: isSidebarExpanded ? 220 : 70,
+                  child: buildSidebar(),
+                ),
 
               Expanded(
                 child: Container(
                   color: const Color(0xFFF6EDE8), // cream background
-                  child: Column(
-                    children: [
-                      // ===== Top Header =====
-                      Container(
-                        height: 70,
-                        padding: const EdgeInsets.symmetric(horizontal: 30),
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          titles[selectedIndex],
-                          style: const TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFFC56A4D),
-                          ),
-                        ),
-                      ),
-
-                      // ===== Content Area =====
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.all(24),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(20),
-                              boxShadow: const [
-                                BoxShadow(
-                                  color: Colors.black12,
-                                  blurRadius: 20,
-                                  offset: Offset(0, 8),
+                  child: SafeArea(
+                    child: Column(
+                      children: [
+                        // ===== Top Header =====
+                        Builder(
+                          builder: (context) => Container(
+                            height: 70,
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: Row(
+                              children: [
+                                if (!isTablet)
+                                  IconButton(
+                                    icon: const Icon(Icons.chevron_right),
+                                    onPressed: () {
+                                      Scaffold.of(context).openDrawer();
+                                    },
+                                  ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  titles[selectedIndex.clamp(
+                                    0,
+                                    titles.length - 1,
+                                  )],
+                                  style: const TextStyle(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFFC56A4D),
+                                  ),
                                 ),
                               ],
                             ),
-                            padding: const EdgeInsets.all(24),
-                            child: AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 300),
-                              child: pages[selectedIndex],
+                          ),
+                        ),
+
+                        // ===== Content Area =====
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 1,
+                            ),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(20),
+                                boxShadow: const [
+                                  BoxShadow(
+                                    color: Colors.black12,
+                                    blurRadius: 20,
+                                    offset: Offset(0, 8),
+                                  ),
+                                ],
+                              ),
+                              padding: const EdgeInsets.all(24),
+                              child: AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 300),
+                                child: pages[selectedIndex],
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -107,81 +137,87 @@ class _MainLayoutState extends State<MainLayout> {
 
   Widget buildSidebar() {
     return Container(
-      width: 220,
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
           colors: [Color(0xFFF29972), Color(0xFFC56A4D)],
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
         ),
-        boxShadow: const [
-          BoxShadow(
-            color: Colors.black26,
-            blurRadius: 12,
-            offset: Offset(4, 0),
-          ),
-        ],
       ),
-      child: Column(
-        children: [
-          const SizedBox(height: 30),
-
-          // ===== Logo Section ใหม่ =====
-          Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 160,
-                  height: 160,
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black26,
-                        blurRadius: 12,
-                        offset: Offset(0, 5),
-                      ),
-                    ],
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(13),
-                    child: Image.asset(
-                      "assets/images/logo.png",
-                      fit: BoxFit.contain,
-                    ),
-                  ),
+      child: SafeArea(
+        child: Column(
+          children: [
+            /// ===== ปุ่มขยาย / หด =====
+            Align(
+              alignment: Alignment.centerRight,
+              child: IconButton(
+                icon: Icon(
+                  isSidebarExpanded ? Icons.chevron_left : Icons.chevron_right,
+                  color: Colors.white,
                 ),
-
-                const SizedBox(height: 6),
-
-                const Text(
-                  "Badminton Manager",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
+                onPressed: () {
+                  setState(() {
+                    isSidebarExpanded = !isSidebarExpanded;
+                  });
+                },
+              ),
             ),
-          ),
 
-          const SizedBox(height: 20),
+            if (isSidebarExpanded)
+              Transform.translate(
+                offset: const Offset(0, -30), // 👈 ปรับเลขตรงนี้
+                child: Column(
+                  children: [
+                    Container(
+                      width: 120,
+                      height: 120,
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Image.asset(
+                          "assets/images/logo.png",
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                    ),
 
-          // เส้นคั่น
-          const Divider(color: Colors.white24, thickness: 1),
+                    const SizedBox(height: 10),
 
-          const SizedBox(height: 12),
+                    const Text(
+                      "Badminton Manager",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
 
-          buildRailItem(Icons.people, "รายชื่อ", 0),
-          buildRailItem(Icons.sports_tennis, "จัดก๊วน", 1),
-          buildRailItem(Icons.add_box, "ลูกแบด", 2),
-          buildRailItem(Icons.history, "ประวัติ", 3),
-          buildRailItem(Icons.payment, "ชำระเงิน", 4),
-        ],
+                    const SizedBox(height: 0),
+                  ],
+                ),
+              ),
+
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  children: [
+                    buildRailItem(Icons.people, "รายชื่อ", 0),
+                    buildRailItem(Icons.sports_tennis, "จัดก๊วน", 1),
+                    buildRailItem(Icons.add_box, "ลูกแบด", 2),
+                    buildRailItem(Icons.history, "ประวัติ", 3),
+                    buildRailItem(Icons.payment, "ชำระเงิน", 4),
+                    buildRailItem(Icons.logout, "ออกจากระบบ", 99),
+                    const SizedBox(height: 20),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -189,27 +225,54 @@ class _MainLayoutState extends State<MainLayout> {
   Widget buildRailItem(IconData icon, String title, int index) {
     bool isSelected = selectedIndex == index;
 
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 250),
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: isSelected ? softPeach : Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: ListTile(
-        leading: Icon(icon, color: isSelected ? secondaryBrown : Colors.white),
-        title: Text(
-          title,
-          style: TextStyle(
-            color: isSelected ? secondaryBrown : Colors.white,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-          ),
+    return InkWell(
+      onTap: () async {
+        if (index == 99) {
+          await Supabase.instance.client.auth.signOut();
+
+          if (context.mounted) {
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (_) => const LoginScreen()),
+              (route) => false,
+            );
+          }
+          return;
+        }
+
+        setState(() {
+          selectedIndex = index;
+        });
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+        padding: EdgeInsets.symmetric(
+          vertical: 12,
+          horizontal: isSidebarExpanded ? 16 : 0,
         ),
-        onTap: () {
-          setState(() {
-            selectedIndex = index;
-          });
-        },
+        decoration: BoxDecoration(
+          color: isSelected
+              ? Colors.white.withOpacity(0.2)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: isSidebarExpanded
+            ? Row(
+                children: [
+                  Icon(icon, color: Colors.white),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    // 👈 สำคัญมาก
+                    child: Text(
+                      title,
+                      style: const TextStyle(color: Colors.white),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              )
+            : Center(child: Icon(icon, color: Colors.white, size: 26)),
       ),
     );
   }
@@ -218,32 +281,53 @@ class _MainLayoutState extends State<MainLayout> {
 
   Drawer buildDrawer() {
     return Drawer(
-      child: Container(
-        color: primaryPeach,
-        child: ListView(
-          children: [
-            const DrawerHeader(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFFF28C6F), Color(0xFFC56A4D)],
+      elevation: 0,
+      shadowColor: Colors.transparent,
+      surfaceTintColor: Colors.transparent,
+      backgroundColor: primaryPeach,
+      child: ListView(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 30),
+            decoration: const BoxDecoration(),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 100,
+                  height: 100,
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: Image.asset(
+                      "assets/images/logo.png",
+                      fit: BoxFit.contain,
+                    ),
+                  ),
                 ),
-              ),
-              child: Text(
-                "🏸 Badminton Manager",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
+                const SizedBox(height: 10),
+                const Text(
+                  "Badminton Manager",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
+              ],
             ),
-            buildDrawerItem(Icons.people, "สร้างรายชื่อ", 0),
-            buildDrawerItem(Icons.sports_tennis, "จัดก๊วน", 1),
-            buildDrawerItem(Icons.add_box, "เพิ่มรายการลูกแบด", 2),
-            buildDrawerItem(Icons.history, "ประวัติการจัดก๊วน", 3),
-            buildDrawerItem(Icons.payment, "ประวัติการชำระเงิน", 4),
-          ],
-        ),
+          ),
+
+          buildDrawerItem(Icons.people, "สร้างรายชื่อ", 0),
+          buildDrawerItem(Icons.sports_tennis, "จัดก๊วน", 1),
+          buildDrawerItem(Icons.add_box, "เพิ่มรายการลูกแบด", 2),
+          buildDrawerItem(Icons.history, "ประวัติการจัดก๊วน", 3),
+          buildDrawerItem(Icons.payment, "ประวัติการชำระเงิน", 4),
+          buildDrawerItem(Icons.logout, "ออกจากระบบ", 99),
+        ],
       ),
     );
   }
@@ -266,11 +350,23 @@ class _MainLayoutState extends State<MainLayout> {
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
           ),
         ),
-        onTap: () {
+        onTap: () async {
+          if (index == 99) {
+            await Supabase.instance.client.auth.signOut();
+
+            if (context.mounted) {
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (_) => const LoginScreen()),
+                (route) => false,
+              );
+            }
+            return; // 🔥 สำคัญมาก
+          }
+
           setState(() {
             selectedIndex = index;
           });
-          Navigator.pop(context);
         },
       ),
     );
